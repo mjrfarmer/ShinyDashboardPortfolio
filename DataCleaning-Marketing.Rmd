@@ -1,0 +1,81 @@
+---
+title: "Data Cleaning for Marketing Data"
+author: "Maya Reese Farmer"
+date: "October 19, 2021"
+output:
+  pdf_document: default
+  html_notebook: default
+  html_document:
+    df_print: paged
+---
+
+#### Introduction  
+These were the data cleaning techniques I used on the Marketing Analytics dataset from kaggle.com  
+This data was originally provided by Dr. Omar Romero-Hernandez.
+
+The marketing dataset contains 2240 customers and has 28 columns with data on:  
+
+ - customer profiles (ID, birth year, education, income, etc.) 
+ - product preferences
+ - marketing campaign successes/failures
+ - channel performance
+
+
+```{r}
+## importing dataset into r
+marketing_data <- read.csv("~/Downloads/marketing_data.csv")
+
+## view data
+head(marketing_data,10)
+```
+ 
+ 
+#### Data Cleaning
+
+```{r}
+## task 1: convert income to numerical value
+library(readr)
+library(dplyr)
+
+income = marketing_data %>% select(Income)
+income_parsed = sapply(income, parse_number) %>% as_tibble()
+clean.marketing = marketing_data %>% select(-Income) %>% bind_cols(income_parsed)
+```
+
+```{r}
+## task 2: create an age column from year_birth
+clean.marketing$age = (2021 - clean.marketing$Year_Birth)
+```
+
+```{r}
+## task 3: create age group categories
+clean.marketing = clean.marketing %>%
+  mutate(AgeGroup = case_when(
+    clean.marketing$age <= 35 ~ "Under 36",
+    clean.marketing$age >= 36 & clean.marketing$age <= 50 ~ "36-50",
+    clean.marketing$age >= 51 & clean.marketing$age <= 65 ~ "51-65",
+    clean.marketing$age >= 66 & clean.marketing$age <= 80 ~ "66-80",
+    clean.marketing$age >= 81 ~ "80+"))
+```
+
+```{r}
+## task 4: create income range categories
+clean.marketing = clean.marketing %>%
+  mutate(IncomeRange = case_when(
+    clean.marketing$Income < 50000 ~ "Under 50K",
+    clean.marketing$Income >= 50000 & clean.marketing$Income <= 75000 ~ "50K-75K",
+    clean.marketing$Income > 75000 & clean.marketing$Income <= 100000 ~ "75K-100K",
+    clean.marketing$Income > 100000 ~ "Over 100K"))
+```
+
+```{r,tidy=TRUE, tidy.opts=list(width.cutoff=60)}
+## task 5: rename some columns (this makes things easier to categorize when we pivot the table later)
+clean.marketing = clean.marketing %>% rename(Web = NumWebPurchases, Catalog = NumCatalogPurchases, Store = NumStorePurchases,Camp1 = AcceptedCmp1,Camp2 = AcceptedCmp2,Camp3 = AcceptedCmp3,Camp4 = AcceptedCmp4,Camp5 = AcceptedCmp5)
+```
+
+```{r,tidy=TRUE, tidy.opts=list(width.cutoff=60)}
+## task 6: create column that sums the total amount each customer has spent
+clean.marketing = clean.marketing %>% mutate(total.spent = rowSums(clean.marketing[,9:14]))
+```
+
+---
